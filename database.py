@@ -64,11 +64,13 @@ def save_ai_training_data(df):
     """
     Save HIPAA-safe data for AI training.
     Removes all PHI before storage.
+    Detects and skips duplicates based on claim_hash.
     """
     if len(df) == 0:
-        return
+        return 0
     
     conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
     
     # Create anonymized dataset
     safe_df = pd.DataFrame()
@@ -90,11 +92,26 @@ def save_ai_training_data(df):
         axis=1
     )
     
-    # Save to database
-    safe_df.to_sql('payer_performance', conn, if_exists='append', index=False)
+    # ===== DUPLICATE DETECTION =====
+    # Get existing claim hashes from database
+    try:
+        cursor.execute('SELECT DISTINCT claim_hash FROM payer_performance')
+        existing_hashes = {row[0] for row in cursor.fetchall()}
+    except:
+        existing_hashes = set()
+    
+    # Filter out duplicates
+    safe_df['is_duplicate'] = safe_df['claim_hash'].isin(existing_hashes)
+    new_claims = safe_df[~safe_df['is_duplicate']].drop(columns=['is_duplicate'])
+    duplicates_count = len(safe_df) - len(new_claims)
+    
+    # Save only new claims
+    if len(new_claims) > 0:
+        new_claims.to_sql('payer_performance', conn, if_exists='append', index=False)
+    
     conn.close()
     
-    return len(safe_df)
+    return len(new_claims), duplicates_count
 
 def get_payer_stats():
     """Get aggregated payer performance for AI insights"""

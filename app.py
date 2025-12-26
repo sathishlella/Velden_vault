@@ -694,9 +694,17 @@ def main():
                 # Save to AI training database (HIPAA-safe - no PHI)
                 if DATABASE_ENABLED:
                     try:
-                        records_saved = save_ai_training_data(df)
+                        result = save_ai_training_data(df)
+                        if isinstance(result, tuple):
+                            records_saved, duplicates = result
+                        else:
+                            records_saved = result
+                            duplicates = 0
+                        
                         if records_saved > 0:
-                            st.success(f"🤖 Saved {records_saved} de-identified claims to AI training database")
+                            st.success(f"🤖 Saved {records_saved} new de-identified claims to AI training database")
+                        if duplicates > 0:
+                            st.info(f"ℹ️ Skipped {duplicates} duplicate claims (already in database)")
                     except Exception as e:
                         st.warning(f"Could not save to AI database: {e}")
                 
