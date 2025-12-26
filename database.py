@@ -56,8 +56,8 @@ def anonymize_patient_data(patient_name, claim_id):
     if not patient_name or patient_name == 'N/A':
         return 'ANON_' + hashlib.sha256(str(claim_id).encode()).hexdigest()[:12]
     
-    # Create hash from patient name + claim
-    combined = f"{patient_name}_{claim_id}_{datetime.now().date()}"
+    # Create hash from patient name + claim (STABLE - no date)
+    combined = f"{patient_name}_{claim_id}"
     return hashlib.sha256(combined.encode()).hexdigest()[:16]
 
 def save_ai_training_data(df):
