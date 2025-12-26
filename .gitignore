@@ -20,7 +20,10 @@ ENV/
 client_data/
 *.db
 *.sqlite
+# Block any CSV files EXCEPT the reference data
 *.csv
+!Claim*.csv
+!Remittance*.csv
 
 # IDE
 .vscode/
