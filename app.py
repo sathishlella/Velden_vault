@@ -1199,7 +1199,11 @@ def main():
                     st.metric("Total Denied", f"${total_amount:,.2f}")
                 with col4:
                     recent_upload = df_training['upload_date'].max()
-                    st.metric("Last Upload", recent_upload[:10] if recent_upload else "N/A")
+                    if recent_upload and not pd.isna(recent_upload):
+                        upload_date_str = str(recent_upload)[:10]
+                    else:
+                        upload_date_str = "N/A"
+                    st.metric("Last Upload", upload_date_str)
                 
                 st.divider()
                 
