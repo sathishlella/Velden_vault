@@ -495,7 +495,7 @@ def main():
         # Navigation
         page = st.radio(
             "Navigation",
-            ["📊 Audit Dashboard", "🔍 Code Lookup", "📄 Generate Report"],
+            ["📊 Audit Dashboard", "🔍 Code Lookup", "📄 Generate Report", "🤖 AI Training Data"],
             label_visibility="collapsed"
         )
         
@@ -1160,6 +1160,101 @@ def main():
                 st.components.v1.html(html_report, height=800, scrolling=True)
         else:
             st.warning("⚠️ No audit data available. Please upload and analyze 835 files first in the Audit Dashboard.")
+    
+    # ==================== AI TRAINING DATA PAGE ====================
+    elif page == "🤖 AI Training Data":
+        st.markdown("""
+        <div class="main-header">
+            <h1>🤖 AI Training Data</h1>
+            <p>View and download de-identified claims data collected for future AI risk scoring</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        if not DATABASE_ENABLED:
+            st.error("Database module not loaded. AI training data collection is disabled.")
+        elif training_records == 0:
+            st.info("📊 No training data collected yet. Upload denial data in the Audit Dashboard to start collecting.")
+        else:
+            st.success(f"✅ **{training_records:,} claims** stored in AI training database")
+            
+            # Display data
+            try:
+                import sqlite3
+                conn = sqlite3.connect('ai_training_data.db')
+                
+                # Get all data
+                df_training = pd.read_sql('SELECT * FROM payer_performance ORDER BY upload_date DESC LIMIT 1000', conn)
+                conn.close()
+                
+                # Stats
+                col1, col2, col3, col4 = st.columns(4)
+                with col1:
+                    unique_payers = df_training['payer_name'].nunique()
+                    st.metric("Unique Payers", unique_payers)
+                with col2:
+                    unique_codes = df_training['denial_code'].nunique()
+                    st.metric("Denial Code Types", unique_codes)
+                with col3:
+                    total_amount = df_training['adjustment_amount'].sum()
+                    st.metric("Total Denied", f"${total_amount:,.2f}")
+                with col4:
+                    recent_upload = df_training['upload_date'].max()
+                    st.metric("Last Upload", recent_upload[:10] if recent_upload else "N/A")
+                
+                st.divider()
+                
+                # Display table
+                st.markdown("### 📋 Recent Claims Data (HIPAA-Safe)")
+                st.caption("🔒 All patient identifiers have been removed or hashed")
+                
+                # Select columns to display
+                display_cols = ['upload_date', 'payer_name', 'denial_code', 'recoverability_status', 
+                               'adjustment_amount', 'rarc_code', 'state']
+                st.dataframe(
+                    df_training[display_cols].head(100),
+                    use_container_width=True,
+                    hide_index=True
+                )
+                
+                # Download options
+                st.divider()
+                st.markdown("### 📥 Export Data")
+                
+                col1, col2 = st.columns(2)
+                with col1:
+                    # CSV export
+                    csv_data = df_training.to_csv(index=False)
+                    st.download_button(
+                        "📄 Download as CSV",
+                        csv_data,
+                        "ai_training_data.csv",
+                        "text/csv"
+                    )
+                
+                with col2:
+                    # SQLite database export
+                    with open('ai_training_data.db', 'rb') as f:
+                        db_bytes = f.read()
+                    st.download_button(
+                        "💾 Download SQLite Database",
+                        db_bytes,
+                        "ai_training_data.db",
+                        "application/octet-stream"
+                    )
+                
+                # Data insights
+                st.divider()
+                st.markdown("### 📊 Quick Insights")
+                
+                # Top payers by denial amount
+                top_payers = df_training.groupby('payer_name')['adjustment_amount'].sum().sort_values(ascending=False).head(5)
+                if len(top_payers) > 0:
+                    st.markdown("**Top 5 Payers by Denial Amount:**")
+                    for payer, amount in top_payers.items():
+                        st.write(f"- {payer}: ${amount:,.2f}")
+                
+            except Exception as e:
+                st.error(f"Error loading training data: {e}")
 
 if __name__ == "__main__":
     main()
