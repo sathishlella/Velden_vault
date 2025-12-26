@@ -258,10 +258,13 @@ def load_code_dictionaries():
 def load_recoverability_matrix():
     """Load recoverability classifications"""
     try:
-        from recoverability_matrix import RECOVERABILITY, DEFAULT_STATUS
-        return RECOVERABILITY, DEFAULT_STATUS
-    except ImportError:
-        return {}, {"status": "UNKNOWN", "category": "Unknown", "fixable": None}
+        from recoverability_matrix import load_full_recoverability_matrix
+        recoverability_dict = load_full_recoverability_matrix()
+        default_status = {"status": "REVIEW_REQUIRED", "category": "Unknown", "fixable": None, "action": "Review required"}
+        return recoverability_dict, default_status
+    except Exception as e:
+        st.warning(f"Could not load recoverability matrix: {e}")
+        return {}, {"status": "REVIEW_REQUIRED", "category": "Unknown", "fixable": None, "action": "Review required"}
 
 # Parse 835 files - EXTRACTS REAL RARC FROM LQ SEGMENTS
 def parse_835_files(file_contents_list):

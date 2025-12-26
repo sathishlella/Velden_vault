@@ -77,8 +77,8 @@ def save_ai_training_data(df):
     safe_df['cpt_code'] = df.get('cpt_code', 'Unknown')
     safe_df['state'] = df.get('state', 'Unknown')
     safe_df['denial_code'] = df['code_display']
-    safe_df['rarc_code'] = df['rarc']
-    safe_df['recoverability_status'] = df['status']
+    safe_df['rarc_code'] = df.get('rarc', '')
+    safe_df['recoverability_status'] = df.get('recoverability', 'REVIEW_REQUIRED')
     safe_df['adjustment_amount'] = df['amount']
     
     # Hash claim IDs (not reversible)
